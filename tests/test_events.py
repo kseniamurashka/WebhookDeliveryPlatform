@@ -44,12 +44,8 @@ def test_create_event_for_nonexistent_project(client):
     assert response.json() == {"detail": "Project not found"}
 
 
-def test_event_creation_is_idempotent(client, project_factory, monkeypatch):
+def test_event_creation_is_idempotent(client, project_factory):
     project_id = project_factory()
-    monkeypatch.setattr(
-        "app.api.events.deliver_webhook.delay",
-        lambda *args, **kwargs: None,
-    )
     payload = {
         "project_id": project_id,
         "event_type": "payment.completed",

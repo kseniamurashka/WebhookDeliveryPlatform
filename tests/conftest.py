@@ -6,6 +6,15 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
+@pytest.fixture(autouse=True)
+def disable_celery_task_publishing(monkeypatch):
+    """API tests verify database state without requiring a Redis broker."""
+    monkeypatch.setattr(
+        "app.api.events.deliver_webhook.delay",
+        lambda *args, **kwargs: None,
+    )
+
+
 @pytest.fixture
 def project_factory(client):
     def create_project(name: str | None = None) -> str:
@@ -95,13 +104,7 @@ def delivery_factory(
     endpoint_factory,
     subscription_factory,
     event_factory,
-    monkeypatch,
 ):
-    monkeypatch.setattr(
-        "app.api.events.deliver_webhook.delay",
-        lambda *args, **kwargs: None,
-    )
-
     def create_delivery(
         endpoint_url: str = "https://example.com/webhook",
         event_type: str = "payment.completed",
