@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: webhooks_test
+          POSTGRES_USER: webhook_user
+          POSTGRES_PASSWORD: webhook_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U webhook_user -d webhooks_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://webhook_user:webhook_password@localhost:5432/webhooks_test
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -e . pytest pytest-asyncio ruff httpx
+      - run: alembic upgrade head
+      - run: ruff check .
+      - run: pytest
